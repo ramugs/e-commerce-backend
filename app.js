@@ -12,8 +12,10 @@ app.use("/ecommerce/admin", adminRouter);
 
 // error handler
 const notFoundMiddleware = require("./middleware/not-found");
+const errorHandlerMiddleware = require("./middleware/error-handler");
 
 app.use(notFoundMiddleware);
+app.use(errorHandlerMiddleware);
 
 const PORT = process.env.PORT || 5000;
 
