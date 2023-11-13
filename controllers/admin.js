@@ -18,8 +18,9 @@ const createAdmin = async (req, res) => {
   }
 
   const admin = await Admin.create(req.body);
-  res.status(StatusCodes.CREATED).json({
+  res.status(200).json({
     data: `Admin created successfully with the user name ${admin.userName}`,
+    status: "success",
   });
 };
 
@@ -50,7 +51,9 @@ const login = async (req, res) => {
     officeLocation: admin.officeLocation,
   };
   const token = admin.createToken();
-  res.status(StatusCodes.OK).json({ data: responseAdmin, token });
+  res
+    .status(200)
+    .json({ data: responseAdmin, token, status: "success" });
 };
 
 const allAdmin = async (req, res) => {
@@ -64,9 +67,11 @@ const allAdmin = async (req, res) => {
     return adminWithoutData;
   });
 
-  res
-    .status(StatusCodes.OK)
-    .json({ data: sanitizedAdminData, count: allAdmin.length });
+  res.status(200).json({
+    data: sanitizedAdminData,
+    count: allAdmin.length,
+    status: "success",
+  });
 };
 
 const findOneAdmin = async (req, res) => {
@@ -76,7 +81,9 @@ const findOneAdmin = async (req, res) => {
     throw new BadRequestError(`No admin found to thid id ${adminId}`);
   }
   const { password, ...adminWithoutPassword } = admin.toObject();
-  res.status(StatusCodes.OK).json(adminWithoutPassword);
+  res
+    .status(200)
+    .json({ data: adminWithoutPassword, status: "success" });
 };
 
 const editAdmin = async (req, res) => {
@@ -103,7 +110,7 @@ const editAdmin = async (req, res) => {
   if (!admin) {
     throw new NotFoundError(`No Admin with id ${adminId}`);
   }
-  res.status(StatusCodes.OK).json(admin);
+  res.status(200).json({ data: admin, status: "success" });
 };
 
 const editPasswordAdmin = async (req, res) => {
@@ -128,7 +135,18 @@ const editPasswordAdmin = async (req, res) => {
     }
   );
 
-  res.status(StatusCodes.OK).json(admin);
+  res.status(200).json({ data: admin, status: "success" });
+};
+
+const deleteAdmin = async (req, res) => {
+  const adminId = req.params.id;
+  const admin = await Admin.findByIdAndDelete({ _id: adminId });
+  if (!admin) {
+    throw new BadRequestError(`Invalid admin id ${adminId}`);
+  }
+  res
+    .status(200)
+    .json({ data: `${adminId} admin deleted successfully`, status: "success" });
 };
 
 module.exports = {
@@ -138,4 +156,5 @@ module.exports = {
   findOneAdmin,
   editAdmin,
   editPasswordAdmin,
+  deleteAdmin,
 };
