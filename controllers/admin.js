@@ -156,7 +156,7 @@ const forgetPassword = async (req, res) => {
   const resetToken = admin.createResetPasswordToken();
 
   await admin.save();
-  const resetUrl = `${process.env.PRODUCTION_URL}/reset-password/${resetToken}`;
+  const resetUrl = `${process.env.PRODUCTION_URL}/ecommerce/admin/reset-password/${resetToken}`;
   const message = `we have received a password reset request. Please use the below link to reset ypur password \n\n ${resetUrl}\n\n This reset password link will be valid for only 10 minutes`;
 
   try {
