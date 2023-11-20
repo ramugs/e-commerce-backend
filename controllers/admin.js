@@ -3,6 +3,8 @@ const Admin = require("../models/admin/admin");
 const { StatusCodes } = require("http-status-codes");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const sendEmail = require("../middleware/email");
+const crypto = require("crypto");
 
 const createAdmin = async (req, res) => {
   const { userName, phoneNumber, emailAdress } = req.body;
@@ -51,9 +53,7 @@ const login = async (req, res) => {
     officeLocation: admin.officeLocation,
   };
   const token = admin.createToken();
-  res
-    .status(200)
-    .json({ data: responseAdmin, token, status: "success" });
+  res.status(200).json({ data: responseAdmin, token, status: "success" });
 };
 
 const allAdmin = async (req, res) => {
@@ -81,14 +81,12 @@ const findOneAdmin = async (req, res) => {
     throw new BadRequestError(`No admin found to thid id ${adminId}`);
   }
   const { password, ...adminWithoutPassword } = admin.toObject();
-  res
-    .status(200)
-    .json({ data: adminWithoutPassword, status: "success" });
+  res.status(200).json({ data: adminWithoutPassword, status: "success" });
 };
 
 const editAdmin = async (req, res) => {
   const adminId = req.params.id;
-  const { userName, phoneNumber, emailAdress, ...remaingData } = req.body;
+  const { userName, phoneNumber, emailAdress } = req.body;
 
   const differentAdmin = await Admin.find({
     _id: { $ne: adminId },
@@ -149,6 +147,64 @@ const deleteAdmin = async (req, res) => {
     .json({ data: `${adminId} admin deleted successfully`, status: "success" });
 };
 
+const forgetPassword = async (req, res) => {
+  const admin = await Admin.findOne({ emailAdress: req.body.emailAdress });
+  if (!admin) {
+    throw new BadRequestError(`Could not find the admin we the given email`);
+  }
+
+  const resetToken = admin.createResetPasswordToken();
+
+  await admin.save();
+  const resetUrl = `${process.env.PRODUCTION_URL}/reset-password/${resetToken}`;
+  const message = `we have received a password reset request. Please use the below link to reset ypur password \n\n ${resetUrl}\n\n This reset password link will be valid for only 10 minutes`;
+
+  try {
+    await sendEmail({
+      email: admin.emailAdress,
+      subject: `Password Change Request Received`,
+      message: message,
+    });
+    res.status(200).json({
+      resetToken,
+      data: "Password reset link is send to the email",
+      status: "success",
+    });
+  } catch (error) {
+    admin.passwordResetToken = undefined;
+    admin.passwordResetTokenExpires = undefined;
+    await admin.save({ validateBeforeSave: false });
+    console.log(error);
+    throw new BadRequestError(
+      `There was an error send password reset email. Please try again Later`
+    );
+  }
+};
+
+const passwordReset = async (req, res) => {
+  const token = crypto
+    .createHash("sha256")
+    .update(req.params.token)
+    .digest("hex");
+
+  const admin = await Admin.findOne({
+    passwordResetToken: token,
+    passwordResetTokenExpires: { $gt: Date.now() },
+  });
+  if (!admin) {
+    throw new BadRequestError(`Token is Invalid or Expired`);
+  }
+  admin.password = req.body.password;
+  admin.passwordResetToken = undefined;
+  admin.passwordResetTokenExpires = undefined;
+  admin.passwordChangedAt = Date.now();
+
+  await admin.save();
+  res
+    .status(200)
+    .json({ data: `Password reset successful`, status: "success" });
+};
+
 module.exports = {
   createAdmin,
   login,
@@ -157,4 +213,6 @@ module.exports = {
   editAdmin,
   editPasswordAdmin,
   deleteAdmin,
+  forgetPassword,
+  passwordReset,
 };
