@@ -57,7 +57,54 @@ const login = async (req, res) => {
 };
 
 const allAdmin = async (req, res) => {
-  const allAdmin = await Admin.find();
+  const {
+    firstName,
+    lastName,
+    userName,
+    emailAdress,
+    phoneNumber,
+    jobTitle,
+    officeLocation,
+    sort,
+  } = req.query;
+  const queryObject = {};
+  if (firstName) {
+    queryObject.firstName = { $regex: firstName, $options: "i" };
+  }
+  if (lastName) {
+    queryObject.lastName = { $regex: lastName, $options: "i" };
+  }
+  if (userName) {
+    queryObject.userName = { $regex: userName, $options: "i" };
+  }
+  if (emailAdress) {
+    queryObject.emailAdress = { $regex: emailAdress, $options: "i" };
+  }
+  if (phoneNumber) {
+    queryObject.phoneNumber = { $regex: phoneNumber, $options: "i" };
+  }
+  if (jobTitle) {
+    queryObject.jobTitle = { $regex: jobTitle, $options: "i" };
+  }
+  if (officeLocation) {
+    queryObject.officeLocation = { $regex: officeLocation, $options: "i" };
+  }
+
+  let result = Admin.find(queryObject);
+  if (sort) {
+    const sortList = sort.split(",").join(" ");
+    result = result.sort(sortList);
+  } else {
+    result = result.sort("createdAt");
+  }
+
+  const page = Number(req.query?.page) || 1;
+  const limit = Number(req.query?.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  result = result.skip(skip).limit(limit);
+
+  const allAdmin = await result;
   if (!allAdmin) {
     throw new BadRequestError("Didn't find any admin");
   }
