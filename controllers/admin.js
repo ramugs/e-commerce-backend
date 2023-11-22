@@ -105,6 +105,7 @@ const allAdmin = async (req, res) => {
   result = result.skip(skip).limit(limit);
 
   const allAdmin = await result;
+  const allAdminCount = await Admin.find({});
   if (!allAdmin) {
     throw new BadRequestError("Didn't find any admin");
   }
@@ -113,10 +114,10 @@ const allAdmin = async (req, res) => {
     const { password, ...adminWithoutData } = admin.toObject();
     return adminWithoutData;
   });
-
   res.status(200).json({
     data: sanitizedAdminData,
     count: allAdmin.length,
+    totalCount: allAdminCount.length,
     status: "success",
   });
 };
