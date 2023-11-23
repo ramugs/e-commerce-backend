@@ -95,7 +95,7 @@ const allAdmin = async (req, res) => {
     const sortList = sort.split(",").join(" ");
     result = result.sort(sortList);
   } else {
-    result = result.sort("createdAt");
+    result = result.sort("-createdAt");
   }
 
   const page = Number(req.query?.page) || 1;
