@@ -112,10 +112,12 @@ const allAdmin = async (req, res) => {
 
   console.log(allAdmin);
 
-  const sanitizedAdminData = allAdmin.filter(data => !data.isBlocked && !data.isDeleted).map((admin) => {
-    const { password, ...adminWithoutData } = admin.toObject();
-    return adminWithoutData;
-  });
+  const sanitizedAdminData = allAdmin
+    .filter((data) => !data.isBlocked || !data.isDeleted)
+    .map((admin) => {
+      const { password, ...adminWithoutData } = admin.toObject();
+      return adminWithoutData;
+    });
   res.status(200).json({
     data: sanitizedAdminData,
     count: allAdmin.length,
