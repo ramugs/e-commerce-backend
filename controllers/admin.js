@@ -110,14 +110,16 @@ const allAdmin = async (req, res) => {
     throw new BadRequestError("Didn't find any admin");
   }
 
-  const sanitizedAdminData = allAdmin.map((admin) => {
+  console.log(allAdmin);
+
+  const sanitizedAdminData = allAdmin.filter(data => !data.isBlocked && !data.isDeleted).map((admin) => {
     const { password, ...adminWithoutData } = admin.toObject();
     return adminWithoutData;
   });
   res.status(200).json({
     data: sanitizedAdminData,
     count: allAdmin.length,
-    totalCount: allAdminCount.length,
+    totalCount: sanitizedAdminData.length,
     status: "success",
   });
 };
@@ -185,14 +187,42 @@ const editPasswordAdmin = async (req, res) => {
 };
 
 const deleteAdmin = async (req, res) => {
+  // const adminId = req.params.id;
+  // const admin = await Admin.findByIdAndDelete({ _id: adminId });
+  // if (!admin) {
+  //   throw new BadRequestError(`Invalid admin id ${adminId}`);
+  // }
+  // res
+  //   .status(200)
+  //   .json({ data: `${adminId} admin deleted successfully`, status: "success" });
+
   const adminId = req.params.id;
-  const admin = await Admin.findByIdAndDelete({ _id: adminId });
+  const { password } = req.body;
+  const admin = await Admin.findOne({ _id: adminId });
   if (!admin) {
     throw new BadRequestError(`Invalid admin id ${adminId}`);
   }
-  res
-    .status(200)
-    .json({ data: `${adminId} admin deleted successfully`, status: "success" });
+  const isPassword = await admin.comparePassword(password);
+  if (!isPassword) {
+    throw new BadRequestError("Invalid Password");
+  }
+
+  if (!admin.isDeleted) {
+    const deleteAdmin = await Admin.findByIdAndUpdate(
+      { _id: adminId },
+      { isDeleted: true, deletedAt: Date.now(), deletedBy: req.user.userName },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    return res
+      .status(200)
+      .json({ data: `${adminId} is Deleted successfully`, status: "success" });
+  } else {
+    throw new BadRequestError(`${adminId} is already Deleted`);
+  }
 };
 
 const forgetPassword = async (req, res) => {
@@ -222,7 +252,6 @@ const forgetPassword = async (req, res) => {
     admin.passwordResetToken = undefined;
     admin.passwordResetTokenExpires = undefined;
     await admin.save({ validateBeforeSave: false });
-    console.log(error);
     throw new BadRequestError(
       `There was an error send password reset email. Please try again Later`
     );
@@ -253,6 +282,71 @@ const passwordReset = async (req, res) => {
     .json({ data: `Password reset successful`, status: "success" });
 };
 
+const blockAdmin = async (req, res) => {
+  const adminId = req.params.id;
+  const { password } = req.body;
+  const admin = await Admin.findOne({ _id: adminId });
+  if (!admin) {
+    throw new BadRequestError(`Invalid admin id ${adminId}`);
+  }
+  const isPassword = await admin.comparePassword(password);
+  if (!isPassword) {
+    throw new BadRequestError("Invalid Password");
+  }
+
+  if (!admin.isBlocked) {
+    const blockAdmin = await Admin.findByIdAndUpdate(
+      { _id: adminId },
+      { isBlocked: true, blockedAt: Date.now(), blockedBy: req.user.userName },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    return res
+      .status(200)
+      .json({ data: `${adminId} is blocked successfully`, status: "success" });
+  } else {
+    throw new BadRequestError(`${adminId} is already blocked`);
+  }
+};
+
+const unBlockAdmin = async (req, res) => {
+  const adminId = req.params.id;
+  const { password } = req.body;
+  const admin = await Admin.findOne({ _id: adminId });
+  if (!admin) {
+    throw new BadRequestError(`Invalid admin id ${adminId}`);
+  }
+  const isPassword = await admin.comparePassword(password);
+  if (!isPassword) {
+    throw new BadRequestError("Invalid Password");
+  }
+
+  if (admin.isBlocked) {
+    const unBlockAdmin = await Admin.findByIdAndUpdate(
+      { _id: adminId },
+      {
+        isBlocked: false,
+        unBlockedAt: Date.now(),
+        unBlockedBy: req.user.userName,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    return res.status(200).json({
+      data: `${adminId} is unblocked successfully`,
+      status: "success",
+    });
+  } else {
+    throw new BadRequestError(`${adminId} is already unblocked`);
+  }
+};
+
 module.exports = {
   createAdmin,
   login,
@@ -263,4 +357,6 @@ module.exports = {
   deleteAdmin,
   forgetPassword,
   passwordReset,
+  blockAdmin,
+  unBlockAdmin,
 };

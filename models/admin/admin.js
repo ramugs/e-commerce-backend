@@ -53,6 +53,20 @@ const adminSchema = new mongoose.Schema(
     passwordChangedAt: Date,
     passwordResetToken: String,
     passwordResetTokenExpires: Date,
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
+    blockedAt: Date,
+    blockedBy: String,
+    unBlockedAt: Date,
+    unBlockedBy: String,
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: Date,
+    deletedBy: String,
   },
   { timestamps: true }
 );
@@ -64,6 +78,7 @@ adminSchema.pre("save", async function () {
 
 adminSchema.methods.comparePassword = async function (canditatePassword) {
   const isMatch = await bcrypt.compare(canditatePassword, this.password);
+  console.log(canditatePassword, this.password);
   return isMatch;
 };
 

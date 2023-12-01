@@ -11,6 +11,8 @@ const {
   deleteAdmin,
   forgetPassword,
   passwordReset,
+  blockAdmin,
+  unBlockAdmin,
 } = require("../controllers/admin");
 
 router.route("/login").post(login);
@@ -24,5 +26,7 @@ router.route("/edit-password/:id").patch(authorization, editPasswordAdmin);
 router.route("/delete/:id").delete(authorization, deleteAdmin);
 router.route("/forget-password").post(forgetPassword);
 router.route("/reset-password/:token").patch(passwordReset);
+router.route("/block/:id").post(authorization, blockAdmin);
+router.route("/unblock/:id").post(authorization, unBlockAdmin);
 
 module.exports = router;
