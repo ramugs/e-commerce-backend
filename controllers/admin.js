@@ -90,7 +90,12 @@ const allAdmin = async (req, res) => {
     queryObject.officeLocation = { $regex: officeLocation, $options: "i" };
   }
 
-  let result = Admin.find(queryObject);
+  console.log(queryObject);
+  let result = Admin.find({
+    ...queryObject,
+    isDeleted: { $ne: true },
+    isBlocked: { $ne: true },
+  });
   if (sort) {
     const sortList = sort.split(",").join(" ");
     result = result.sort(sortList);
@@ -105,23 +110,24 @@ const allAdmin = async (req, res) => {
   result = result.skip(skip).limit(limit);
 
   const allAdmin = await result;
-  const allAdminCount = await Admin.find({});
+  const allAdminCount = await Admin.find({
+    isDeleted: false || null || undefined,
+    isBlocked: false || null || undefined,
+  });
   if (!allAdmin) {
     throw new BadRequestError("Didn't find any admin");
   }
 
-  console.log(allAdmin);
-
   const sanitizedAdminData = allAdmin
-    .filter((data) => !data.isBlocked || !data.isDeleted)
+    .filter((data) => !data.isBlocked && !data.isDeleted)
     .map((admin) => {
       const { password, ...adminWithoutData } = admin.toObject();
       return adminWithoutData;
     });
   res.status(200).json({
     data: sanitizedAdminData,
-    count: allAdmin.length,
-    totalCount: sanitizedAdminData.length,
+    // count: allAdmin.length,
+    totalCount: allAdmin.length,
     status: "success",
   });
 };
